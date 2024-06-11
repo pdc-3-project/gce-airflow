@@ -15,18 +15,18 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Setup SSH
-      uses: webfactory/ssh-agent@v0.5.3
-      with:
-        ssh-private-key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
-
-    - name: Configure GCP Credentials
+    - name: Set up Google Cloud SDK
       uses: google-github-actions/setup-gcloud@v0.9.0
       with:
         service_account_key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
         project_id: ${{ secrets.GCP_PROJECT_ID }}
 
+    - name: Authorize SSH connection to GCP instance
+      run: |
+        echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" > ${HOME}/gcp-key.json
+        gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
+        gcloud compute ssh --quiet --zone="${{ secrets.GCP_COMPUTE_ZONE }}" "${{ secrets.GCP_INSTANCE_NAME }}" --project "${{ secrets.GCP_PROJECT_ID }}" --command="mkdir -p /home/admin/airflow/dags"
+
     - name: Copy DAGs to GCP
       run: |
-        gcloud config set project ${{ secrets.GCP_PROJECT_ID }}
-        gcloud compute scp --zone ${{ secrets.GCP_COMPUTE_ZONE }} --recurse dags/* ${{ secrets.GCP_INSTANCE_NAME }}:/home/admin/airflow/dags/
+        gcloud compute scp --zone="${{ secrets.GCP_COMPUTE_ZONE }}" --recurse dags/* "${{ secrets.GCP_INSTANCE_NAME }}:/home/admin/airflow/dags/" --project="${{ secrets.GCP_PROJECT_ID }}"

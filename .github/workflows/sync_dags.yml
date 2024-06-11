@@ -1,0 +1,32 @@
+name: Sync DAGs to GCE Airflow
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'dags/**'
+
+jobs:
+  sync-dags:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.5.3
+      with:
+        ssh-private-key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
+
+    - name: Configure GCP Credentials
+      uses: google-github-actions/setup-gcloud@v0.9.0
+      with:
+        service_account_key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+    - name: Copy DAGs to GCP
+      run: |
+        gcloud config set project ${{ secrets.GCP_PROJECT_ID }}
+        gcloud compute scp --zone ${{ secrets.GCP_COMPUTE_ZONE }} --recurse dags/* ${{ secrets.GCP_INSTANCE_NAME }}:/home/admin/airflow/dags/

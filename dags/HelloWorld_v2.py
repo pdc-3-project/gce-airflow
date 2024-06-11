@@ -4,7 +4,7 @@ from datetime import datetime
 
 @task
 def print_hello():
-    print("hello!")
+    print("hello!!")
     return "hello!"
 
 @task

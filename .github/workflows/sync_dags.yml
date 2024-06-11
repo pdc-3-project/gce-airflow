@@ -21,12 +21,12 @@ jobs:
         service_account_key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
         project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-    - name: Authorize SSH connection to GCP instance
+    - name: Authorize SSH connection to GCP instance and pull latest DAGs
       run: |
         echo '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}' > ${HOME}/gcp-key.json
         gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
-        gcloud compute ssh --quiet --zone="${{ secrets.GCP_COMPUTE_ZONE }}" "${{ secrets.GCP_INSTANCE_NAME }}" --project "${{ secrets.GCP_PROJECT_ID }}" --command="mkdir -p /home/admin/airflow/dags"
+        gcloud compute ssh --quiet --zone="${{ secrets.GCP_COMPUTE_ZONE }}" "${{ secrets.GCP_INSTANCE_NAME }}" --project "${{ secrets.GCP_PROJECT_ID }}" --command="cd /home/admin/airflow && git pull"
 
-    - name: Copy DAGs to GCP
-      run: |
-        gcloud compute scp --zone="${{ secrets.GCP_COMPUTE_ZONE }}" --recurse dags/* "${{ secrets.GCP_INSTANCE_NAME }}:/home/admin/airflow/dags/" --project="${{ secrets.GCP_PROJECT_ID }}"
+    # - name: Copy DAGs to GCP
+    #   run: |
+    #     gcloud compute scp --zone="${{ secrets.GCP_COMPUTE_ZONE }}" --recurse dags/* "${{ secrets.GCP_INSTANCE_NAME }}:/home/admin/airflow/dags/" --project="${{ secrets.GCP_PROJECT_ID }}"

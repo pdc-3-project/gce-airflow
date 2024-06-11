@@ -1,0 +1,9 @@
+/logs/
+/temp/
+*.pid
+*.db
+webserver_config.py
+*.pyc
+*.sh
+*.out
+*.cfg

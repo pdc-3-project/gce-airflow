@@ -25,7 +25,7 @@ jobs:
       run: |
         echo '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}' > ${HOME}/gcp-key.json
         gcloud auth activate-service-account --key-file=${HOME}/gcp-key.json
-        gcloud compute ssh --quiet --zone="${{ secrets.GCP_COMPUTE_ZONE }}" "${{ secrets.GCP_INSTANCE_NAME }}" --project "${{ secrets.GCP_PROJECT_ID }}" --command="cd /home/admin/airflow && git config --global --add safe.directory /home/admin/airflow && git pull"
+        gcloud compute ssh --quiet --zone="${{ secrets.GCP_COMPUTE_ZONE }}" "${{ secrets.GCP_INSTANCE_NAME }}" --project "${{ secrets.GCP_PROJECT_ID }}" --command="cd /home/admin/airflow && git config --global --add safe.directory /home/admin/airflow && git checkout ${{ vars.TARGET_BRANCH }} git pull"
 
     # - name: Copy DAGs to GCP
     #   run: |

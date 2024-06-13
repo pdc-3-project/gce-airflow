@@ -8,11 +8,11 @@ import pandas as pd
 import requests
 import xml.etree.ElementTree as ET
 import logging
-from plugins import slack
+#from plugins import slack
 from airflow.models import Variable
 
 # Airflow Variables
-service_key = Variable.get('service_key')
+service_key = Variable.get('airport_api_key')
 
 def fetch_data_from_api(url, params):
     response = requests.get(url, params=params)
@@ -86,7 +86,7 @@ default_args = {
     'start_date': datetime(2024, 6, 1),
     'retries': 1,
     'retry_delay': timedelta(minutes=5),
-    'on_failure_callback': slack.on_failure_callback
+    #'on_failure_callback': slack.on_failure_callback
 }
 
 dag = DAG(
@@ -114,7 +114,7 @@ upload_to_gcs_task = LocalFilesystemToGCSOperator(
     task_id='upload_to_gcs',
     src='/tmp/Domestic.csv',
     dst='source/domestic_data/{{ execution_date.strftime("%Y/%m/%d") }}/domestic_data_{{ execution_date.strftime("%Y%m%d") }}.csv',
-    bucket='pdc3project-landing-layer-bucket',
+    bucket='pdc3project-landing-zone-bucket',
     gcp_conn_id='google_cloud_GCS',
     dag=dag,
 )

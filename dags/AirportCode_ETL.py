@@ -12,7 +12,7 @@ from plugins import slack
 from airflow.models import Variable
 
 # Airflow Variables
-service_key = Variable.get('service_key')
+service_key = Variable.get('airport_api_key')
 
 def send_request(url, params):
     response = requests.get(url, params=params)
@@ -80,7 +80,7 @@ def transform_airport_codes(**kwargs):
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': datetime(2024, 6, 1),  # start_date 추가
+    'start_date': datetime(2024, 6, 1), 
     'retries': 1,
     'retry_delay': timedelta(minutes=5),
     'on_failure_callback' : slack.on_failure_callback
@@ -96,14 +96,14 @@ dag = DAG(
 extract_data_task = PythonOperator(
     task_id='extract_airport_codes',
     python_callable=extract_airport_codes,
-    provide_context=True,  # provide_context 추가
+    provide_context=True,  
     dag=dag,
 )
 
 transform_data_task = PythonOperator(
     task_id='transform_airport_codes',
     python_callable=transform_airport_codes,
-    provide_context=True,  # provide_context 추가
+    provide_context=True,  
     dag=dag,
 )
 

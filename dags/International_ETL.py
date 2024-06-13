@@ -12,7 +12,7 @@ from plugins import slack
 from airflow.models import Variable
 
 # Airflow Variables
-service_key = Variable.get('service_key')
+service_key = Variable.get('airport_api_key')
 
 def send_request(url, params):
     response = requests.get(url, params=params)
@@ -117,7 +117,7 @@ upload_to_gcs_task = LocalFilesystemToGCSOperator(
     task_id='upload_to_gcs',
     src='/tmp/International.csv',
     dst='source/international_data/{{ execution_date.strftime("%Y/%m/%d") }}/international_data_{{ execution_date.strftime("%Y%m%d") }}.csv',
-    bucket='pdc3project-landing-layer-bucket',
+    bucket='pdc3project-landing-zone-bucket',
     gcp_conn_id='google_cloud_GCS',
     dag=dag,
 )

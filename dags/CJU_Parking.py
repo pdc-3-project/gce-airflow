@@ -79,18 +79,18 @@ dag = DAG(
 
 # Define the task
 fetch_and_upload_task = PythonOperator(
-    task_id='fetch_and_upload_parking_data',
+    task_id='fetch_and_upload_CJU_parking_data',
     python_callable=update_parking_data,
     dag=dag,
 )
 
 upload_to_gcs_task = LocalFilesystemToGCSOperator(
-    task_id='fetch_and_upload_CJU_parking_data', # 개발자의 task 정의에 따라 임의로 입력
+    task_id='upload_CJU_parking_data', # 개발자의 task 정의에 따라 임의로 입력
     src='/tmp/CJU_parking_data.csv', # API에서 받아온 데이터를 로컬에 csv로 먼저 저장한 상황을 가정하며 해당 csv파일 위치 입력
     dst='source/source_parkinglot/CJU_parking_data/2024/06/{{ execution_date.strftime("%d") }}/CJU_parking_data_{{ execution_date.strftime("%Y%m%d") }}.csv',
     bucket='pdc3project-landing-zone-bucket',
     gcp_conn_id='google_cloud_GCS',
-    dag=dag
+    dag=dag,
 )
 
 fetch_and_upload_task>>upload_to_gcs_task

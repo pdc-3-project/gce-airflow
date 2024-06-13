@@ -94,7 +94,7 @@ transform_flight_data_task = PythonOperator(
 
 upload_to_gcs_task = LocalFilesystemToGCSOperator(
     task_id='upload_to_gcs',
-    src='/tmp/flight_data.csv',
+    src='/tmp/FlightStatus.csv',
     dst='source/flight_data/{{ execution_date.strftime("%Y/%m/%d") }}/flight_data_{{ execution_date.strftime("%Y%m%d") }}.csv',
     bucket='pdc3project-landing-zone-bucket',
     gcp_conn_id='google_cloud_GCS',

@@ -41,10 +41,11 @@ def sum_csv_transform_csv_to_parquet():
     for csv_file in csv_files:
         file_path = os.path.join('tmp/GCS', csv_file)
         line = (open(file_path, 'r').read()).strip().split("\n") 
-        for l in line[1:]:
+        for l in line:
             (NUMBERING1, NUMBERING2, S, TM, L_VIS, R_VIS, L_RVR, R_RVR, CH_MIN, TA, TD, HM, PS, PA, RN, B1, B2, WD02, WD02_MAX, WD02_MIN, WS02, WS02_MAX, WS02_MIN, WD10, WD10_MAX, WD10_MIN, WS10, WS10_MAX, WS10_MIN) = l.split(",")
-            TM = datetime.strptime(TM, '%Y%m%d%H%M')
-            records.append([int(S), TM, float(L_VIS), float(L_RVR), float(CH_MIN), float(TA), float(HM), float(PA), float(RN), float(WS02), float(WS02_MAX), float(WS02_MIN), float(WS10), float(WS10_MAX), float(WS10_MIN)])
+            if NUMBERING1 != '\ufeff':
+                TM = datetime.strptime(TM, '%Y%m%d%H%M')
+                records.append([int(S), TM, float(L_VIS), float(L_RVR), float(CH_MIN), float(TA), float(HM), float(PA), float(RN), float(WS02), float(WS02_MAX), float(WS02_MIN), float(WS10), float(WS10_MAX), float(WS10_MIN)])
             
     df = pd.DataFrame(records, columns=['S', 'TM', 'L_VIS', 'L_RVR', 'CH_MIN', 'TA', 'HM', 'PA', 'RN', 'WS02', 'WS02_MAX', 'WS02_MIN', 'WS10', 'WS10_MAX', 'WS10_MIN'])
     table = pa.Table.from_pandas(df)

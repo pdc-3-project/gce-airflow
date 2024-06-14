@@ -65,7 +65,7 @@ with DAG(
     start_date=datetime(2024, 6, 1, 00, 10),
     schedule=timedelta(days=1),
     max_active_runs=1,
-    catchup=False,
+    catchup=True,
     default_args={
         'retries': 1,
         'retry_delay': timedelta(minutes=2),

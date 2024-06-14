@@ -43,9 +43,9 @@ def sum_csv_transform_csv_to_parquet():
         line = (open(file_path, 'r').read()).strip().split("\n") 
         for l in line[1:]:
             (NUMBERING1, NUMBERING2, S, TM, L_VIS, R_VIS, L_RVR, R_RVR, CH_MIN, TA, TD, HM, PS, PA, RN, B1, B2, WD02, WD02_MAX, WD02_MIN, WS02, WS02_MAX, WS02_MIN, WD10, WD10_MAX, WD10_MIN, WS10, WS10_MAX, WS10_MIN) = l.split(",")
-            TM = datetime.strptime(TM, '%Y%m%d%H%M')
-            records.append([int(S), TM, float(L_VIS), float(L_RVR), float(CH_MIN), float(TA), float(HM), float(PA), float(RN), float(WS02), float(WS02_MAX), float(WS02_MIN), float(WS10), float(WS10_MAX), float(WS10_MIN)])
-            print(TM)
+            if S == '110' or S == '113' or S == '182':
+                records.append([int(S), TM, float(L_VIS), float(L_RVR), float(CH_MIN), float(TA), float(HM), float(PA), float(RN), float(WS02), float(WS02_MAX), float(WS02_MIN), float(WS10), float(WS10_MAX), float(WS10_MIN)])
+            
     df = pd.DataFrame(records, columns=['S', 'TM', 'L_VIS', 'L_RVR', 'CH_MIN', 'TA', 'HM', 'PA', 'RN', 'WS02', 'WS02_MAX', 'WS02_MIN', 'WS10', 'WS10_MAX', 'WS10_MIN'])
     table = pa.Table.from_pandas(df)
     pq.write_table(table, 'tmp/airport_weather_infor.parquet')
@@ -69,7 +69,7 @@ with DAG(
     default_args={
         'retries': 1,
         'retry_delay': timedelta(minutes=2),
-        # 'on_failure_callback': slack.on_failure_callback,
+        'on_failure_callback': slack.on_failure_callback,
     }
 ) as dag:
 
@@ -77,7 +77,7 @@ with DAG(
     upload_gcs_stage = LocalFilesystemToGCSOperator(
     task_id='upload_to_gcs_stage', 
     src='tmp/airport_weather_infor.parquet',
-    dst='source/weather/{{ execution_date.in_timezone("Asia/Seoul").strftime("%Y/%m/%d") }}/weather_infor_{{ execution_date.in_timezone("Asia/Seoul").strftime("%Y%m%d") }}.parquet', 
+    dst='source/weather/{{ prev_execution_date.in_timezone("Asia/Seoul").strftime("%Y/%m/%d") }}/weather_infor_{{ prev_execution_date.in_timezone("Asia/Seoul").strftime("%Y%m%d") }}.parquet', 
     bucket='pdc3project-stage-layer-bucket',
     gcp_conn_id='google_cloud_GCS',
     dag=dag 
@@ -87,7 +87,7 @@ with DAG(
     upload_to_bigquery = GCSToBigQueryOperator(
     task_id='upload_to_bq',
     bucket='pdc3project-stage-layer-bucket',
-    source_objects=['source/weather/{{ execution_date.in_timezone("Asia/Seoul").strftime("%Y/%m/%d") }}/weather_infor_{{ execution_date.in_timezone("Asia/Seoul").strftime("%Y%m%d") }}.parquet'],
+    source_objects=['source/weather/{{ prev_execution_date.in_timezone("Asia/Seoul").strftime("%Y/%m/%d") }}/weather_infor_{{ prev_execution_date.in_timezone("Asia/Seoul").strftime("%Y%m%d") }}.parquet'],
     destination_project_dataset_table='pdc3project.raw_data.weather_infor',
     source_format='PARQUET',
     autodetect=True,
@@ -98,7 +98,7 @@ with DAG(
     
     gcp_conn_id = 'google_cloud_GCS'
     bucket_name = 'pdc3project-landing-zone-bucket'
-    folder_path = 'source/weather/{{ execution_date.in_timezone("Asia/Seoul").strftime("%Y/%m/%d") }}'
+    folder_path = 'source/weather/{{ prev_execution_date.in_timezone("Asia/Seoul").strftime("%Y/%m/%d") }}'
     local_dir = 'tmp/GCS'
 
 

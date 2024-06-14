@@ -51,13 +51,13 @@ def transform_flight_data(**kwargs):
     all_data = ti.xcom_pull(task_ids='extract_flight_data')
 
     filtered_data = [
-        {key: flight.get(key, '') for key in ['AIRLINE_KOREAN', 'AIRPORT', 'ARRIVED_KOR', 'BOARDING_KOR', 'FLIGHT_DATE', 'IO', 'LINE', 'RMK_KOR', 'STD', 'UFID']}
+        {key: flight.get(key, '') for key in ['AIRLINE_KOREAN', 'AIRPORT', 'ARRIVED_KOR', 'BOARDING_KOR', 'FLIGHT_DATE', 'IO', 'LINE', 'RMK_KOR', 'STD', 'ETD', 'UFID']}
         for flight in all_data 
         if flight.get('BOARDING_KOR', '') in ['김포', '인천', '제주'] or flight.get('ARRIVED_KOR', '') in ['김포', '인천', '제주']
     ]
 
     df = pd.DataFrame(filtered_data)
-    csv_file_path = '/tmp/FlightStatus.csv'
+    csv_file_path = '/tmp/flight_data.csv'
     df.to_csv(csv_file_path, index=False)
 
     return csv_file_path
@@ -65,17 +65,17 @@ def transform_flight_data(**kwargs):
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': datetime(2024, 6, 1),
+    'start_date': datetime(2024, 6, 14),
     'retries': 1,
     'retry_delay': timedelta(minutes=5),
-    'on_failure_callback': slack.on_failure_callback  
+    'on_failure_callback': slack.on_failure_callback  # Slack 알림 설정
 }
 
 dag = DAG(
     dag_id='flight_data_fetcher',
     default_args=default_args,
     catchup=False,
-    schedule_interval='0 0 * * *', 
+    schedule_interval='0 0 * * *',  # 매일 자정 UTC에 실행
 )
 
 extract_flight_data_task = PythonOperator(
@@ -94,7 +94,7 @@ transform_flight_data_task = PythonOperator(
 
 upload_to_gcs_task = LocalFilesystemToGCSOperator(
     task_id='upload_to_gcs',
-    src='/tmp/FlightStatus.csv',
+    src='/tmp/flight_data.csv',
     dst='source/flight_data/{{ execution_date.strftime("%Y/%m/%d") }}/flight_data_{{ execution_date.strftime("%Y%m%d") }}.csv',
     bucket='pdc3project-landing-zone-bucket',
     gcp_conn_id='google_cloud_GCS',

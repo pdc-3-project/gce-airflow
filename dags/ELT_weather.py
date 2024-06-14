@@ -47,7 +47,7 @@ def sum_csv_transform_csv_to_parquet():
                 records.append([int(S), TM, float(L_VIS), float(L_RVR), float(CH_MIN), float(TA), float(HM), float(PA), float(RN), float(WS02), float(WS02_MAX), float(WS02_MIN), float(WS10), float(WS10_MAX), float(WS10_MIN)])
             
     df = pd.DataFrame(records, columns=['S', 'TM', 'L_VIS', 'L_RVR', 'CH_MIN', 'TA', 'HM', 'PA', 'RN', 'WS02', 'WS02_MAX', 'WS02_MIN', 'WS10', 'WS10_MAX', 'WS10_MIN'])
-    table = pa.Table.from_pandas(df)
+    table = pa.Table.from_pandas(df, preserve_index = False)
     pq.write_table(table, 'tmp/airport_weather_infor.parquet')
 
 
@@ -62,7 +62,7 @@ def delete_csv_files(local_dir):
 
 with DAG(
     dag_id='Weather_ELT',
-    start_date=datetime(2024, 6, 1, 00, 10),
+    start_date=datetime(2024, 6, 1),
     schedule=timedelta(days=1),
     max_active_runs=1,
     catchup=True,

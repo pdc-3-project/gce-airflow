@@ -58,7 +58,7 @@ def transform(text):
 
 
 with DAG(
-    dag_id='update_weather_infor',
+    dag_id='Weather_ETL',
     start_date=datetime(2024, 5, 31, 16, 4),  # 이 시간에서 8시간 55분을 더하면 202406011259 -> 202406011200 ~ 202406011259 데이터 가져오도록 유도
     schedule=timedelta(minutes=60),  
     max_active_runs=1,

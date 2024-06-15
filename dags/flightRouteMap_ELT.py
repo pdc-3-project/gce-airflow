@@ -8,6 +8,7 @@ import pandas as pd
 import tempfile
 import pyarrow as pa
 import pyarrow.parquet as pq
+from datetime import datetime
 
 default_args = {
     'start_date': days_ago(1),
@@ -100,6 +101,7 @@ def load_existing_data(**kwargs):
     hook = BigQueryHook(gcp_conn_id='google_cloud_bigquery', location='asia-northeast3')
     sql = "SELECT * FROM `pdc3project.analytics.flight_map`"
     df = hook.get_pandas_df(sql, dialect='standard')
+    df['ETD'] = df['ETD'].astype(str)
     kwargs['ti'].xcom_push(key='existing_data', value=df.to_dict(orient='list'))
 
 # 데이터를 병합하고 중복 제거
@@ -121,6 +123,7 @@ def update_final_table(**kwargs):
     execution_date = kwargs['execution_date']
     combined_data = ti.xcom_pull(key='combined_data')
     combined_df = pd.DataFrame(combined_data)
+    combined_df['ETD'] = combined_df['ETD'].apply(lambda x: datetime.strptime(x, '%Y%m%d%H%M') if pd.notnull(x) else x)
 
     gcs_object_name = f'source/flight_route_data/{ execution_date.strftime("%Y/%m/%d") }/flight_route_data_{ execution_date.strftime("%Y%m%d") }.parquet'
 

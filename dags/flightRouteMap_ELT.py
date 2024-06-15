@@ -128,7 +128,7 @@ def update_final_table(**kwargs):
         table = pa.Table.from_pandas(combined_df)
         pq.write_table(table, temp_file.name, coerce_timestamps='us', use_deprecated_int96_timestamps=True)
         temp_file.flush()
-        gcs_hook = GCSHook(google_cloud_storage_conn_id='google_cloud_GCS')
+        gcs_hook = GCSHook(gcp_conn_id='google_cloud_GCS')
         gcs_hook.upload(
             bucket_name='pdc3project-analytics-layer-bucket',
             object_name=gcs_object_name,

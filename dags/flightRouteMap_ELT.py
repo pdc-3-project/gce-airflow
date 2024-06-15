@@ -16,7 +16,7 @@ default_args = {
 
 # 새로운 데이터를 Pandas DataFrame으로 로드
 def load_new_data(**kwargs):
-    hook = BigQueryHook(gcp_conn_id='google_cloud_bigquery', use_legacy_sql=False)
+    hook = BigQueryHook(gcp_conn_id='google_cloud_bigquery', use_legacy_sql=False, location='asia-northeast3')
     sql = """
     WITH union_all_airports AS (
         SELECT *
@@ -92,14 +92,14 @@ def load_new_data(**kwargs):
         target_airport
     FROM BOARD_COOR_CTE
     """
-    df = hook.get_pandas_df(sql)
+    df = hook.get_pandas_df(sql, dialect='standard')
     kwargs['ti'].xcom_push(key='new_data', value=df.to_dict(orient='list'))
 
 # 기존 데이터를 Pandas DataFrame으로 로드
 def load_existing_data(**kwargs):
-    hook = BigQueryHook(gcp_conn_id='google_cloud_bigquery', use_legacy_sql=False)
+    hook = BigQueryHook(gcp_conn_id='google_cloud_bigquery', location='asia-northeast3')
     sql = "SELECT * FROM `pdc3project.analytics.flight_map`"
-    df = hook.get_pandas_df(sql)
+    df = hook.get_pandas_df(sql, dialect='standard')
     kwargs['ti'].xcom_push(key='existing_data', value=df.to_dict(orient='list'))
 
 # 데이터를 병합하고 중복 제거
@@ -137,7 +137,7 @@ def update_final_table(**kwargs):
 
     bq_source_uris = f'gs://pdc3project-analytics-layer-bucket/{ gcs_object_name }'
 
-    hook = BigQueryHook(gcp_conn_id='google_cloud_bigquery', use_legacy_sql=False)
+    hook = BigQueryHook(gcp_conn_id='google_cloud_bigquery', location='asia-northeast3')
     hook.run_load(
         destination_project_dataset_table='pdc3project.analytics.flight_map',
         source_uris=[bq_source_uris],

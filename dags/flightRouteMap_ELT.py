@@ -143,6 +143,7 @@ def update_final_table(**kwargs):
         source_uris=[bq_source_uris],
         source_format='PARQUET',
         write_disposition='WRITE_TRUNCATE',
+        autodetect=True
     )
 
 # DAG 정의

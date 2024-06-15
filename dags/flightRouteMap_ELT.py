@@ -1,7 +1,7 @@
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from airflow.providers.google.cloud.hooks.bigquery import BigQueryHook
-from airflow.providers.google.cloud.hooks.gcs import GoogleCloudStorageHook
+from airflow.providers.google.cloud.hooks.gcs import GCSHook
 from airflow.utils.dates import days_ago
 
 import pandas as pd
@@ -128,7 +128,7 @@ def update_final_table(**kwargs):
         table = pa.Table.from_pandas(combined_df)
         pq.write_table(table, temp_file.name, coerce_timestamps='us', use_deprecated_int96_timestamps=True)
         temp_file.flush()
-        gcs_hook = GoogleCloudStorageHook(google_cloud_storage_conn_id='google_cloud_GCS')
+        gcs_hook = GCSHook(google_cloud_storage_conn_id='google_cloud_GCS')
         gcs_hook.upload(
             bucket_name='pdc3project-analytics-layer-bucket',
             object_name=gcs_object_name,

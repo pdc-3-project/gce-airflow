@@ -94,6 +94,7 @@ def load_new_data(**kwargs):
     FROM BOARD_COOR_CTE
     """
     df = hook.get_pandas_df(sql, dialect='standard')
+    df['ETD'] = df['ETD'].astype(str)
     kwargs['ti'].xcom_push(key='new_data', value=df.to_dict(orient='list'))
 
 # 기존 데이터를 Pandas DataFrame으로 로드

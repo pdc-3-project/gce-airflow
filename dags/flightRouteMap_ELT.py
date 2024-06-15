@@ -124,7 +124,8 @@ def update_final_table(**kwargs):
     execution_date = kwargs['execution_date']
     combined_data = ti.xcom_pull(key='combined_data')
     combined_df = pd.DataFrame(combined_data)
-    combined_df['ETD'] = combined_df['ETD'].apply(lambda x: datetime.strptime(x, '%Y%m%d%H%M') if pd.notnull(x) else x)
+    combined_df['ETD'] = combined_df['ETD'].apply(lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S%z') if pd.notnull(x) else x)
+
 
     gcs_object_name = f'source/flight_route_data/{ execution_date.strftime("%Y/%m/%d") }/flight_route_data_{ execution_date.strftime("%Y%m%d") }.parquet'
 

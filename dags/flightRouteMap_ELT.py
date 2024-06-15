@@ -100,11 +100,10 @@ def load_new_data(**kwargs):
 # 기존 데이터를 Pandas DataFrame으로 로드
 def load_existing_data(**kwargs):
     hook = BigQueryHook(gcp_conn_id='google_cloud_bigquery', location='asia-northeast3')
-    sql = "SELECT * FROM `pdc3project.analytics.flight_map`"
 
     try:
         # 테이블이 존재하면 데이터를 로드
-        sql = "SELECT * FROM `pdc3project.adhoc.flight_map`"
+        sql = "SELECT * FROM `pdc3project.analytics.flight_map`"
         df = hook.get_pandas_df(sql, dialect='standard')
     except Exception as e:
         # 테이블이 존재하지 않으면 빈 데이터프레임 반환

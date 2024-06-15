@@ -4,6 +4,8 @@ from airflow.providers.google.cloud.hooks.bigquery import BigQueryHook
 from airflow.providers.google.cloud.hooks.gcs import GCSHook
 from airflow.utils.dates import days_ago
 
+from plugins import slack
+
 import pandas as pd
 import tempfile
 import pyarrow as pa
@@ -11,8 +13,10 @@ import pyarrow.parquet as pq
 from datetime import datetime
 
 default_args = {
+    'owner': 'airflow',
     'start_date': days_ago(1),
     'retries': 1,
+    'on_failure_callback': slack.on_failure_callback,
 }
 
 # 새로운 데이터를 Pandas DataFrame으로 로드
@@ -176,6 +180,7 @@ def update_final_table(**kwargs):
 
 with DAG(
     'update_flight_map_table',
+    description= "an aircraft flight route data table fetch dag using flight_data related tables and static data from bigquery's raw_data dataset. Flight_data tables are updated incrementally every day according to their update cycle. Updated in both GCS and bigquery analytics dataset.",
     default_args=default_args,
     schedule_interval='@daily',
     catchup=False,

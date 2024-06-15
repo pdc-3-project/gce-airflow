@@ -101,6 +101,21 @@ def load_new_data(**kwargs):
 def load_existing_data(**kwargs):
     hook = BigQueryHook(gcp_conn_id='google_cloud_bigquery', location='asia-northeast3')
     sql = "SELECT * FROM `pdc3project.analytics.flight_map`"
+
+    try:
+        # 테이블이 존재하면 데이터를 로드
+        sql = "SELECT * FROM `pdc3project.adhoc.flight_map`"
+        df = hook.get_pandas_df(sql, dialect='standard')
+    except Exception as e:
+        # 테이블이 존재하지 않으면 빈 데이터프레임 반환
+        if 'Not found' in str(e):
+            df = pd.DataFrame(columns=[
+                'UFID','ARRIVED_KOR', 'BOARDING_KOR', 'origin_lat', 'origin_lon', 
+                'destination_lat', 'destination_lon', 'ETD', 'target_airport'
+            ])
+        else:
+            raise e
+
     df = hook.get_pandas_df(sql, dialect='standard')
     df['ETD'] = df['ETD'].astype(str)
     kwargs['ti'].xcom_push(key='existing_data', value=df.to_dict(orient='list'))
@@ -151,7 +166,7 @@ def update_final_table(**kwargs):
         autodetect=True
     )
 
-# DAG 정의
+
 with DAG(
     'update_flight_map_table',
     default_args=default_args,
@@ -183,5 +198,4 @@ with DAG(
         python_callable=update_final_table,
     )
 
-    # 작업의 순서 정의
     [load_new_data_task, load_existing_data_task] >> merge_and_remove_duplicates_task >> update_final_table_task

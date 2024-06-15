@@ -77,7 +77,7 @@ with DAG(
     upload_gcs_stage = LocalFilesystemToGCSOperator(
     task_id='upload_to_gcs_stage', 
     src='tmp/airport_weather_infor.parquet',
-    dst='source/weather/{{ prev_execution_date.in_timezone("Asia/Seoul").strftime("%Y/%m/%d") }}/weather_infor_{{ prev_execution_date.in_timezone("Asia/Seoul").strftime("%Y%m%d") }}.parquet', 
+    dst='source/weather/{{ execution_date.in_timezone("Asia/Seoul").strftime("%Y/%m/%d") }}/weather_infor_{{ execution_date.in_timezone("Asia/Seoul").strftime("%Y%m%d") }}.parquet', 
     bucket='pdc3project-stage-layer-bucket',
     gcp_conn_id='google_cloud_GCS',
     dag=dag 
@@ -87,7 +87,7 @@ with DAG(
     upload_to_bigquery = GCSToBigQueryOperator(
     task_id='upload_to_bq',
     bucket='pdc3project-stage-layer-bucket',
-    source_objects=['source/weather/{{ prev_execution_date.in_timezone("Asia/Seoul").strftime("%Y/%m/%d") }}/weather_infor_{{ prev_execution_date.in_timezone("Asia/Seoul").strftime("%Y%m%d") }}.parquet'],
+    source_objects=['source/weather/{{ execution_date.in_timezone("Asia/Seoul").strftime("%Y/%m/%d") }}/weather_infor_{{ execution_date.in_timezone("Asia/Seoul").strftime("%Y%m%d") }}.parquet'],
     destination_project_dataset_table='pdc3project.raw_data.weather_infor',
     source_format='PARQUET',
     autodetect=True,
@@ -98,7 +98,7 @@ with DAG(
     
     gcp_conn_id = 'google_cloud_GCS'
     bucket_name = 'pdc3project-landing-zone-bucket'
-    folder_path = 'source/weather/{{ prev_execution_date.in_timezone("Asia/Seoul").strftime("%Y/%m/%d") }}'
+    folder_path = 'source/weather/{{ execution_date.in_timezone("Asia/Seoul").strftime("%Y/%m/%d") }}'
     local_dir = 'tmp/GCS'
 
 

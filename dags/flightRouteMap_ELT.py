@@ -5,7 +5,6 @@ from airflow.providers.google.cloud.hooks.gcs import GCSHook
 from airflow.utils.dates import days_ago
 
 import pandas as pd
-import pandas_gbq
 import tempfile
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -102,21 +101,29 @@ def load_new_data(**kwargs):
 def load_existing_data(**kwargs):
     hook = BigQueryHook(gcp_conn_id='google_cloud_bigquery', location='asia-northeast3')
 
-    try:
-        # 테이블이 존재하면 데이터를 로드
-        sql = "SELECT * FROM `pdc3project.analytics.flight_map`"
-        df = hook.get_pandas_df(sql, dialect='standard')
-    except pandas_gbq.exceptions.GenericGBQException as e:
+    # 테이블 존재 여부 확인 쿼리
+    check_table_exists_sql = """
+        SELECT 
+            COUNT(1) AS table_exists
+        FROM `pdc3project.analytics.INFORMATION_SCHEMA.TABLES`
+        WHERE table_name = 'flight_map'
+    """
+    
+    # 테이블 존재 여부 확인
+    table_exists_df = hook.get_pandas_df(check_table_exists_sql, dialect='standard')
+    table_exists = table_exists_df['table_exists'].iloc[0] > 0
+
+    if not table_exists:
         # 테이블이 존재하지 않으면 빈 데이터프레임 반환
-        # if 'Not found: Table' in str(e):
         df = pd.DataFrame(columns=[
             'UFID','ARRIVED_KOR', 'BOARDING_KOR', 'origin_lat', 'origin_lon', 
             'destination_lat', 'destination_lon', 'ETD', 'target_airport'
         ])
-        # else:
-        #     raise e
+    else:
+        # 테이블이 존재하면 데이터를 로드
+        sql = "SELECT * FROM `pdc3project.analytics.flight_map`"
+        df = hook.get_pandas_df(sql, dialect='standard')
 
-    df = hook.get_pandas_df(sql, dialect='standard')
     df['ETD'] = df['ETD'].astype(str)
     kwargs['ti'].xcom_push(key='existing_data', value=df.to_dict(orient='list'))
 

@@ -108,13 +108,13 @@ def load_existing_data(**kwargs):
         df = hook.get_pandas_df(sql, dialect='standard')
     except pandas_gbq.exceptions.GenericGBQException as e:
         # 테이블이 존재하지 않으면 빈 데이터프레임 반환
-        if 'Not found: Table' in str(e):
-            df = pd.DataFrame(columns=[
-                'UFID','ARRIVED_KOR', 'BOARDING_KOR', 'origin_lat', 'origin_lon', 
-                'destination_lat', 'destination_lon', 'ETD', 'target_airport'
-            ])
-        else:
-            raise e
+        # if 'Not found: Table' in str(e):
+        df = pd.DataFrame(columns=[
+            'UFID','ARRIVED_KOR', 'BOARDING_KOR', 'origin_lat', 'origin_lon', 
+            'destination_lat', 'destination_lon', 'ETD', 'target_airport'
+        ])
+        # else:
+        #     raise e
 
     df = hook.get_pandas_df(sql, dialect='standard')
     df['ETD'] = df['ETD'].astype(str)

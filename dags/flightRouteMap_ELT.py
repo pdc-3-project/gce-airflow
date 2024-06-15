@@ -8,7 +8,7 @@ default_args = {
 }
 
 with DAG(
-    'create_flight_map_table',
+    'flightRouteMap_ELT',
     default_args=default_args,
     schedule_interval='@hourly',
     catchup=False,
@@ -98,6 +98,7 @@ with DAG(
             }
         },
         location='asia-northeast3',
+        gcp_conn_id='google_cloud_bigquery'
     )
 
     create_flight_map_table

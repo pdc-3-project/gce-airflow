@@ -17,7 +17,7 @@ default_args = {
     'owner': 'airflow',
     'start_date': days_ago(1),
     'retries': 1,
-    'on_failure_callback': slack.on_failure_callback,
+    # 'on_failure_callback': slack.on_failure_callback,
 }
 
 # 새로운 데이터를 Pandas DataFrame으로 로드
@@ -82,9 +82,6 @@ def load_new_data(**kwargs):
     """
     df = hook.get_pandas_df(sql, dialect='standard')
     df['TM'] = pd.to_datetime(df['TM'], format='%Y%m%d%H%M')
-    weather_columns = ['TA', 'HM', 'PA', 'WS10']
-    for col in weather_columns:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
     df['DELAY_TIME'] = pd.to_numeric(df['DELAY_TIME'], errors='coerce')
     kwargs['ti'].xcom_push(key='cleaned_data', value=df.to_json())
 

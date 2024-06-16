@@ -137,7 +137,6 @@ def perform_regression(airline_data):
 
 def extract_regression_summary(model, airline_name):
     summary = model.summary2().tables[1]
-    independent_var = ['const', 'TA', 'HM', 'PA', 'WS10']
 
     result = []
     for index, row in summary.iterrows():
@@ -156,7 +155,7 @@ def extract_regression_summary(model, airline_name):
         }
         
         # Add coefficients, standard errors, t-values, p-values, confidence intervals
-        regression_info[f'x'] = independent_var[index]
+        regression_info[f'x'] = index
         regression_info[f'coef'] = row['Coef.']
         regression_info[f'std_err'] = row['Std.Err.']
         regression_info[f't'] = row['t']

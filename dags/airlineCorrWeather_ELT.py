@@ -18,7 +18,7 @@ default_args = {
     'owner': 'airflow',
     'start_date': days_ago(1),
     'retries': 1,
-    # 'on_failure_callback': slack.on_failure_callback,
+    'on_failure_callback': slack.on_failure_callback,
 }
 
 # 새로운 데이터를 Pandas DataFrame으로 로드
@@ -116,7 +116,11 @@ def calculate_correlation(**kwargs):
         correlation_series = correlation_matrix['DELAY_TIME'][1:]  # Exclude 'DELAY_TIME' itself
         correlation_series['AIRLINE_KOREAN'] = airline  # Add airline name
         correlation_results.append(correlation_series)
+
     correlation_df = pd.DataFrame(correlation_results).reset_index(drop=True)
+    if '__index_level_0__' in correlation_df.columns:
+        correlation_df.drop(columns=['__index_level_0__'], inplace=True)
+
     kwargs['ti'].xcom_push(key='correlation_data', value=correlation_df.to_json())
 
 def perform_regression(airline_data):
@@ -191,6 +195,9 @@ def regression_analysis(**kwargs):
     regression_df.replace([np.inf, -np.inf], 'inf', inplace=True)
     regression_df.fillna('null', inplace=True)
     regression_df = regression_df.astype(str)
+
+    if '__index_level_0__' in regression_df.columns:
+        regression_df.drop(columns=['__index_level_0__'], inplace=True)
 
     kwargs['ti'].xcom_push(key='regression_data', value=regression_df.to_json())
 

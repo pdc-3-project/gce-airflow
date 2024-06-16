@@ -84,6 +84,8 @@ def load_new_data(**kwargs):
     """
     df = hook.get_pandas_df(sql, dialect='standard')
     df['TM'] = pd.to_datetime(df['TM'], format='%Y%m%d%H%M')
+    df['AIRLINE_KOREAN'].replace('nan', np.nan, inplace=True)
+    df = df.dropna(subset=['AIRLINE_KOREAN'])
 
     execution_date = kwargs['execution_date']
 

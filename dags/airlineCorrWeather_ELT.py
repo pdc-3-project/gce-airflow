@@ -13,7 +13,6 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from datetime import datetime
 import statsmodels.api as sm
-import re
 
 default_args = {
     'owner': 'airflow',
@@ -111,11 +110,13 @@ def calculate_correlation(**kwargs):
         data = table.to_pandas()
 
     airline_groups = data.groupby('AIRLINE_KOREAN')
-    correlation_results = {}
+    correlation_results = []
     for airline, group in airline_groups:
         correlation_matrix = group[['DELAY_TIME', 'TA', 'HM', 'PA', 'WS10']].corr()
-        correlation_results[airline] = correlation_matrix['DELAY_TIME'][1:]
-    correlation_df = pd.DataFrame(correlation_results)
+        correlation_series = correlation_matrix['DELAY_TIME'][1:]  # Exclude 'DELAY_TIME' itself
+        correlation_series['AIRLINE_KOREAN'] = airline  # Add airline name
+        correlation_results.append(correlation_series)
+    correlation_df = pd.DataFrame(correlation_results).reset_index(drop=True)
     kwargs['ti'].xcom_push(key='correlation_data', value=correlation_df.to_json())
 
 def perform_regression(airline_data):
@@ -204,8 +205,6 @@ def store_final_table(**kwargs):
         json_data = kwargs['ti'].xcom_pull(key=key)
         anal_result = pd.read_json(json_data)
 
-        anal_result = sanitize_column_names(anal_result)
-
         gcs_object_name = f'source/{ table_name }/{ execution_date.strftime("%Y/%m/%d") }/{ table_name }_data_{ execution_date.strftime("%Y%m%d") }.parquet'
         upload_to_gcs(anal_result, gcs_object_name)
 
@@ -233,10 +232,6 @@ def upload_to_bigquery(table_name, bq_source_uris):
         write_disposition='WRITE_TRUNCATE',
         autodetect=True
     )
-
-def sanitize_column_names(df):
-    df.columns = [re.sub(r'\W+', '_', col) for col in df.columns]
-    return df
 
 
 with DAG(

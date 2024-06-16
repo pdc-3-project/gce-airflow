@@ -190,10 +190,7 @@ def regression_analysis(**kwargs):
 
     regression_df = pd.DataFrame(regression_results)
 
-    regression_df.replace([np.inf, -np.inf], 'inf', inplace=True)
-    regression_df.fillna('null', inplace=True)
-
-    kwargs['ti'].xcom_push(key='regression_data', value=regression_df.to_json())
+    kwargs['ti'].xcom_push(key='regression_data', value=regression_df.to_dict(orient='list'))
 
 def store_final_table(**kwargs):
     execution_date = kwargs['execution_date']

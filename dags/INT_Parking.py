@@ -8,7 +8,7 @@ import pandas as pd
 import xml.etree.ElementTree as ET
 from airflow.models import Variable
 from plugins import slack
-import pytz
+import json
 
 
 # Function to fetch XML data from the API
@@ -35,6 +35,8 @@ def calculate_congestion(parking, parkingarea):
         congestion = '만차'
     return degree, congestion
 
+
+# Function to parse the XML data and extract the required fields
 def parse_xml_data(xml_data):
     root = ET.fromstring(xml_data)
     items = []
@@ -62,44 +64,7 @@ def update_parking_data():
     parsed_data_int = parse_xml_data(data_int)
     df = pd.DataFrame(parsed_data_int)
     df.to_csv('/tmp/INT_parking_data.csv', index=False, encoding='utf-8-sig')
-    print("International data fetched and saved to '/tmp/INT_parking_data.csv'")
-
-
-# Convert UTC to KST
-def convert_to_kst(execution_date):
-    # UTC에서 한국 시간으로 변환
-    execution_date_utc = execution_date.replace(tzinfo=pytz.UTC)
-    execution_date_kst = execution_date_utc.astimezone(pytz.timezone('Asia/Seoul'))
-    return execution_date_kst.strftime('%Y-%m-%d %H:%M:%S')
-
-def set_kst_execution_date(**kwargs):
-    # Airflow의 execution_date를 가져와서 한국 시간대로 변환 후 XCom에 저장
-    execution_date = kwargs['execution_date']
-    execution_date_kst = convert_to_kst(execution_date)
-    ti = kwargs['ti']
-    ti.xcom_push(key='execution_date_kst', value=execution_date_kst)
-
-# Function to retrieve the KST execution date from XCom and format the destination path
-def get_kst_execution_date_path(**kwargs):
-    ti = kwargs['ti']
-    execution_date_kst = ti.xcom_pull(task_ids='set_kst_execution_date', key='execution_date_kst')
-    # Convert the pulled execution_date_kst string back to a datetime object
-    execution_date_kst_dt = datetime.strptime(execution_date_kst, '%Y-%m-%d %H:%M:%S')
-    formatted_day = execution_date_kst_dt.strftime("%d")
-    formatted_timestamp = execution_date_kst_dt.strftime("%Y%m%d%H%M")
-    return f'source/source_parkinglot/INT_parking_data/2024/06/{formatted_day}/INT_parking_data_{formatted_timestamp}.csv'
-
-def upload_to_gcs_callable(**kwargs):
-    dst_path = get_kst_execution_date_path(**kwargs)
-    # Use the path in LocalFilesystemToGCSOperator
-    LocalFilesystemToGCSOperator(
-        task_id='upload_INT_parking_data',
-        src='/tmp/INT_parking_data.csv',
-        dst=dst_path,
-        bucket='pdc3project-landing-zone-bucket',
-        gcp_conn_id='google_cloud_GCS',
-        dag=kwargs['dag'],
-    ).execute(kwargs)
+    print("Domestic data fetched and saved to '/tmp/INT_parking_data.csv'")
 
 
 # Define the default_args for the DAG
@@ -113,11 +78,11 @@ default_args = {
 
 # Define the DAG
 dag = DAG(
-    'update_INT_parking_data',
-    default_args=default_args,
-    description='A DAG to update parking data every 5 minutes and save it to GCS',
-    schedule_interval='*/5 * * * *',
-    catchup=False,
+        'update_INT_parking_data',
+        default_args=default_args,
+        description='A DAG to update parking data every 5 minutes and save it to GCS',
+        schedule_interval='*/5 * * * *',
+        catchup=False,
 )
 
 fetch_and_upload_task = PythonOperator(
@@ -126,18 +91,15 @@ fetch_and_upload_task = PythonOperator(
     dag=dag,
 )
 
-set_kst_task = PythonOperator(
-    task_id='set_kst_execution_date',
-    python_callable=set_kst_execution_date,
-    provide_context=True,
+
+upload_to_gcs_task = LocalFilesystemToGCSOperator(
+    task_id='upload_INT_parking_data', # 개발자의 task 정의에 따라 임의로 입력
+    src='/tmp/INT_parking_data.csv', # API에서 받아온 데이터를 로컬에 csv로 먼저 저장한 상황을 가정하며 해당 csv파일 위치 입력
+    dst='source/source_parkinglot/INT_parking_data/2024/06/{{ execution_date.strftime("%d") }}/INT_parking_data_{{ execution_date.strftime("%Y%m%d") }}.csv',
+    bucket='pdc3project-landing-zone-bucket',
+    gcp_conn_id='google_cloud_GCS',
     dag=dag,
 )
 
-upload_to_gcs_task = PythonOperator(
-    task_id='upload_INT_airplane_parking_data',
-    python_callable=upload_to_gcs_callable,
-    provide_context=True,
-    dag=dag,
-)
+fetch_and_upload_task>>upload_to_gcs_task
 
-fetch_and_upload_task >> set_kst_task >> upload_to_gcs_task

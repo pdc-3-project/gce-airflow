@@ -13,6 +13,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from datetime import datetime
 import statsmodels.api as sm
+import re
 
 default_args = {
     'owner': 'airflow',
@@ -203,6 +204,8 @@ def store_final_table(**kwargs):
         json_data = kwargs['ti'].xcom_pull(key=key)
         anal_result = pd.read_json(json_data)
 
+        anal_result = sanitize_column_names(anal_result)
+
         gcs_object_name = f'source/{ table_name }/{ execution_date.strftime("%Y/%m/%d") }/{ table_name }_data_{ execution_date.strftime("%Y%m%d") }.parquet'
         upload_to_gcs(anal_result, gcs_object_name)
 
@@ -230,6 +233,10 @@ def upload_to_bigquery(table_name, bq_source_uris):
         write_disposition='WRITE_TRUNCATE',
         autodetect=True
     )
+
+def sanitize_column_names(df):
+    df.columns = [re.sub(r'\W+', '_', col) for col in df.columns]
+    return df
 
 
 with DAG(

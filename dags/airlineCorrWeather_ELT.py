@@ -122,7 +122,7 @@ def calculate_correlation(**kwargs):
     kwargs['ti'].xcom_push(key='correlation_data', value=correlation_df.to_json())
 
 def perform_regression(airline_data):
-    X = airline_data[['TA_1', 'HM_1', 'PA_1', 'WS10_1']]
+    X = airline_data[['TA', 'HM', 'PA', 'WS10']]
     y = airline_data['DELAY_TIME']
     X = sm.add_constant(X)
     model = sm.OLS(y, X).fit()

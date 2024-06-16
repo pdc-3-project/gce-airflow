@@ -204,7 +204,7 @@ def store_final_table(**kwargs):
         'correlation_data': 'airline_weather_corr_data',
         'regression_data': 'airline_weather_regr_data'
     }
-    for key, table_name in data.items:
+    for key, table_name in data.items():
         json_data = kwargs['ti'].xcom_pull(key=key)
         anal_result = pd.read_json(json_data)
 

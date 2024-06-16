@@ -14,8 +14,8 @@ import re
 
 def convert_to_kst(execution_date):
     execution_date_utc = execution_date.replace(tzinfo=pytz.UTC)
-    execution_date_kst = execution_date_utc.astimezone(pytz.timezone('Asia/Seoul'))
-    return execution_date_kst.strftime('%Y-%m-%d %H:%M:%S')
+    execution_date_korea = execution_date_utc.astimezone(pytz.timezone('Asia/Seoul'))
+    return execution_date_korea.strftime('%Y-%m-%d %H:%M:%S')
 
 def set_kst_execution_date(**kwargs):
     # Airflow의 execution_date를 가져와서 한국 시간대로 변환 후 XCom에 저장

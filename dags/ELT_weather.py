@@ -62,7 +62,7 @@ def delete_csv_files(local_dir):
 
 with DAG(
     dag_id='Weather_ELT',
-    start_date=datetime(2024, 6, 1),
+    start_date=datetime(2024, 6, 1, 00, 20),
     schedule=timedelta(days=1),
     max_active_runs=1,
     catchup=True,

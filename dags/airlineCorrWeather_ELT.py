@@ -84,11 +84,35 @@ def load_new_data(**kwargs):
     df = hook.get_pandas_df(sql, dialect='standard')
     df['TM'] = pd.to_datetime(df['TM'], format='%Y%m%d%H%M')
     df['DELAY_TIME'] = pd.to_numeric(df['DELAY_TIME'], errors='coerce')
-    kwargs['ti'].xcom_push(key='cleaned_data', value=df.to_json())
+
+    execution_date = kwargs['execution_date']
+    gcs_object_name = f'source/flight_weather_data/{ execution_date.strftime("%Y/%m/%d") }/flight_weather_data_{ execution_date.strftime("%Y%m%d") }.parquet'
+
+    with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as temp_file:
+        table = pa.Table.from_pandas(df)
+        pq.write_table(table, temp_file.name, coerce_timestamps='us', use_deprecated_int96_timestamps=True)
+        temp_file.flush()
+        gcs_hook = GCSHook(gcp_conn_id='google_cloud_GCS')
+        gcs_hook.upload(
+            bucket_name='pdc3project-analytics-layer-bucket',
+            object_name=gcs_object_name,
+            filename=temp_file.name
+        )
+    
+    kwargs['ti'].xcom_push(key='gcs_object_name', value=gcs_object_name)
 
 def calculate_correlation(**kwargs):
-    data_json = kwargs['ti'].xcom_pull(key='cleaned_data')
-    data = pd.read_json(data_json)
+    gcs_object_name = kwargs['ti'].xcom_pull(key='gcs_object_name')
+    gcs_hook = GCSHook(gcp_conn_id='google_cloud_GCS')
+    with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as temp_file:
+        gcs_hook.download(
+            bucket_name='pdc3project-analytics-layer-bucket',
+            object_name=gcs_object_name,
+            filename=temp_file.name
+        )
+        table = pq.read_table(temp_file.name)
+        data = table.to_pandas()
+
     airline_groups = data.groupby('AIRLINE_KOREAN')
     correlation_results = {}
     for airline, group in airline_groups:
@@ -138,8 +162,17 @@ def extract_regression_summary(model, airline_name):
     return result
 
 def regression_analysis(**kwargs):
-    data_json = kwargs['ti'].xcom_pull(key='cleaned_data')
-    data = pd.read_json(data_json)
+    gcs_object_name = kwargs['ti'].xcom_pull(key='gcs_object_name')
+    gcs_hook = GCSHook(gcp_conn_id='google_cloud_GCS')
+    with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as temp_file:
+        gcs_hook.download(
+            bucket_name='pdc3project-analytics-layer-bucket',
+            object_name=gcs_object_name,
+            filename=temp_file.name
+        )
+        table = pq.read_table(temp_file.name)
+        data = table.to_pandas()
+        
     airline_groups = data.groupby('AIRLINE_KOREAN')
     regression_results = []
 
@@ -165,16 +198,17 @@ def store_final_table(**kwargs):
 
         gcs_object_name = f'source/{ table_name }/{ execution_date.strftime("%Y/%m/%d") }/{ table_name }_{ execution_date.strftime("%Y%m%d") }.parquet'
 
-        with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as temp_file:
-            table = pa.Table.from_pandas(anal_result)
-            pq.write_table(table, temp_file.name, coerce_timestamps='us', use_deprecated_int96_timestamps=True)
-            temp_file.flush()
-            gcs_hook = GCSHook(gcp_conn_id='google_cloud_GCS')
-            gcs_hook.upload(
-                bucket_name='pdc3project-analytics-layer-bucket',
-                object_name=gcs_object_name,
-                filename=temp_file.name
-            )
+        if key != 'cleaned_data':
+            with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as temp_file:
+                table = pa.Table.from_pandas(anal_result)
+                pq.write_table(table, temp_file.name, coerce_timestamps='us', use_deprecated_int96_timestamps=True)
+                temp_file.flush()
+                gcs_hook = GCSHook(gcp_conn_id='google_cloud_GCS')
+                gcs_hook.upload(
+                    bucket_name='pdc3project-analytics-layer-bucket',
+                    object_name=gcs_object_name,
+                    filename=temp_file.name
+                )
 
         bq_source_uris = f'gs://pdc3project-analytics-layer-bucket/{ gcs_object_name }'
 

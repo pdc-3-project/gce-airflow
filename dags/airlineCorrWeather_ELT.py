@@ -77,7 +77,8 @@ def load_new_data(**kwargs):
         END AS DELAY_CATEGORY,
         DELAY_TIME,
         WS10, HM, PA, TA,
-        *
+        AIRLINE_KOREAN,
+        TM
     FROM flight_weather_cte
     """
     df = hook.get_pandas_df(sql, dialect='standard')

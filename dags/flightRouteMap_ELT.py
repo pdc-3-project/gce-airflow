@@ -122,7 +122,7 @@ def load_existing_data(**kwargs):
         # 테이블이 존재하지 않으면 빈 데이터프레임 반환
         df = pd.DataFrame(columns=[
             'UFID','ARRIVED_KOR', 'BOARDING_KOR', 'origin_lat', 'origin_lon', 
-            'destination_lat', 'destination_lon', 'ETD', 'target_airport'
+            'destination_lat', 'destination_lon', 'ETD', 'FLIGHT_DATE','target_airport'
         ])
     else:
         # 테이블이 존재하면 데이터를 로드

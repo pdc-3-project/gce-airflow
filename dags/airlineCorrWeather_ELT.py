@@ -86,12 +86,14 @@ def load_new_data(**kwargs):
     df['TM'] = pd.to_datetime(df['TM'], format='%Y%m%d%H%M')
 
     execution_date = kwargs['execution_date']
+
+    table_name = 'flight_weather'
     
-    gcs_object_name = f'source/flight_weather_data/{ execution_date.strftime("%Y/%m/%d") }/flight_weather_data_{ execution_date.strftime("%Y%m%d") }.parquet'
+    gcs_object_name = f'source/{ table_name }/{ execution_date.strftime("%Y/%m/%d") }/{ table_name }_data_{ execution_date.strftime("%Y%m%d") }.parquet'
     upload_to_gcs(df, gcs_object_name)
 
     bq_source_uris = f'gs://pdc3project-analytics-layer-bucket/{ gcs_object_name }'
-    upload_to_bigquery(bq_source_uris)
+    upload_to_bigquery(table_name, bq_source_uris)
     
     kwargs['ti'].xcom_push(key='gcs_object_name', value=gcs_object_name)
 
@@ -194,18 +196,18 @@ def store_final_table(**kwargs):
     execution_date = kwargs['execution_date']
 
     data = {
-        'correlation_data': 'airline_weather_corr_data',
-        'regression_data': 'airline_weather_regr_data'
+        'correlation_data': 'airline_weather_corr',
+        'regression_data': 'airline_weather_regr'
     }
     for key, table_name in data.items():
         json_data = kwargs['ti'].xcom_pull(key=key)
         anal_result = pd.read_json(json_data)
 
-        gcs_object_name = f'source/{ table_name }/{ execution_date.strftime("%Y/%m/%d") }/{ table_name }_{ execution_date.strftime("%Y%m%d") }.parquet'
+        gcs_object_name = f'source/{ table_name }/{ execution_date.strftime("%Y/%m/%d") }/{ table_name }_data_{ execution_date.strftime("%Y%m%d") }.parquet'
         upload_to_gcs(anal_result, gcs_object_name)
 
         bq_source_uris = f'gs://pdc3project-analytics-layer-bucket/{ gcs_object_name }'
-        upload_to_bigquery(bq_source_uris)
+        upload_to_bigquery(table_name, bq_source_uris)
 
 def upload_to_gcs(data, gcs_object_name):
     with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as temp_file:
@@ -219,10 +221,10 @@ def upload_to_gcs(data, gcs_object_name):
             filename=temp_file.name
         )
 
-def upload_to_bigquery(bq_source_uris):
+def upload_to_bigquery(table_name, bq_source_uris):
     hook = BigQueryHook(gcp_conn_id='google_cloud_bigquery', location='asia-northeast3')
     hook.run_load(
-        destination_project_dataset_table=f"pdc3project.analytics.{ table_name.replace('_data', '') }",
+        destination_project_dataset_table=f"pdc3project.analytics.{ table_name }",
         source_uris=[bq_source_uris],
         source_format='PARQUET',
         write_disposition='WRITE_TRUNCATE',

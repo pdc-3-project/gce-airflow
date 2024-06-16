@@ -83,7 +83,6 @@ def load_new_data(**kwargs):
     """
     df = hook.get_pandas_df(sql, dialect='standard')
     df['TM'] = pd.to_datetime(df['TM'], format='%Y%m%d%H%M')
-    df['DELAY_TIME'] = pd.to_numeric(df['DELAY_TIME'], errors='coerce')
 
     execution_date = kwargs['execution_date']
     gcs_object_name = f'source/flight_weather_data/{ execution_date.strftime("%Y/%m/%d") }/flight_weather_data_{ execution_date.strftime("%Y%m%d") }.parquet'
@@ -122,11 +121,13 @@ def calculate_correlation(**kwargs):
     kwargs['ti'].xcom_push(key='correlation_data', value=correlation_df.to_json())
 
 def perform_regression(airline_data):
+    airline_data = airline_data.dropna(subset=['DELAY_TIME', 'TA', 'HM', 'PA', 'WS10'])
+
+    airline_data['DELAY_TIME'] = pd.to_numeric(airline_data['DELAY_TIME'], errors='coerce')
+
     weather_columns = ['TA', 'HM', 'PA', 'WS10']
     for col in weather_columns:
         airline_data[col] = pd.to_numeric(airline_data[col], errors='coerce')
-
-    airline_data = airline_data.dropna(subset=['DELAY_TIME', 'TA', 'HM', 'PA', 'WS10'])
 
     X = airline_data[weather_columns]
     y = airline_data['DELAY_TIME']

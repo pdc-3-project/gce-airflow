@@ -188,10 +188,8 @@ def regression_analysis(**kwargs):
         regression_results.extend(regression_info)
 
     regression_df = pd.DataFrame(regression_results)
-    # Replace NaN with None for json serialization
-    regression_df = regression_df.where(pd.notnull(regression_df), None)
 
-    kwargs['ti'].xcom_push(key='regression_data', value=regression_df.to_json())
+    kwargs['ti'].xcom_push(key='regression_data', value=regression_df.to_json(default_handler=str, na_rep='null'))
 
 def store_final_table(**kwargs):
     execution_date = kwargs['execution_date']

@@ -23,24 +23,14 @@ default_args = {
 def load_new_data(**kwargs):
     hook = BigQueryHook(gcp_conn_id='google_cloud_bigquery', use_legacy_sql=False, location='asia-northeast3')
     sql = """
-    WITH union_all_airports AS (
-        SELECT *
-        FROM (
-            SELECT *, '서울/김포' AS target_airport FROM `pdc3project.raw_data.flight_data_GIMPO`
-            UNION ALL
-            SELECT *, '인천' AS target_airport FROM `pdc3project.raw_data.flight_data_INCHEON`
-            UNION ALL
-            SELECT *, '제주' AS target_airport FROM `pdc3project.raw_data.flight_data_JEJU`
-        )
-    ),
-    ARR_CTE as (
+    WITH ARR_CTE as (
         SELECT
             CASE 
             WHEN fs.ARRIVED_KOR = ac.cityKor
                 THEN ac.cityCode 
             END as ARRIVED_CODE,
             * 
-        FROM union_all_airports fs
+        FROM `pdc3project.raw_data.flight_data` fs
         LEFT JOIN `pdc3project.raw_data.airport_codes` ac
         ON fs.ARRIVED_KOR = ac.cityKor
     ),

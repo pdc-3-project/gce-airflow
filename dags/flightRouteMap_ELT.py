@@ -94,6 +94,7 @@ def load_new_data(**kwargs):
         destination_lat,
         destination_lon,
         PARSE_TIMESTAMP('%Y%m%d%H%M', CONCAT(SUBSTR(UFID, 1, 8), LPAD(CAST(ETD AS STRING), 4, '0'))) as ETD,
+        FLIGHT_DATE,
         target_airport
     FROM BOARD_COOR_CTE
     """

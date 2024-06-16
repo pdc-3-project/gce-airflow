@@ -35,13 +35,7 @@ def load_new_data(**kwargs):
                 PARSE_TIME('%H%M', LPAD(CAST(STD AS STRING), 4, '0')),
                 MINUTE
             ) AS DELAY_TIME
-        FROM (
-            SELECT *, '서울/김포' AS target_airport FROM `pdc3project.raw_data.flight_data_GIMPO` WHERE RMK_KOR = '출발'
-            UNION ALL
-            SELECT *, '인천' AS target_airport FROM `pdc3project.raw_data.flight_data_INCHEON` WHERE RMK_KOR = '출발'
-            UNION ALL
-            SELECT *, '제주' AS target_airport FROM `pdc3project.raw_data.flight_data_JEJU` WHERE RMK_KOR = '출발'
-        )
+        FROM `pdc3project.raw_data.flight_data`
     ),
     airport_s AS (
         SELECT 

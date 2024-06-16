@@ -188,7 +188,7 @@ def store_final_table(**kwargs):
 
         hook = BigQueryHook(gcp_conn_id='google_cloud_bigquery', location='asia-northeast3')
         hook.run_load(
-            destination_project_dataset_table=f'pdc3project.analytics.{ table_name.replace('_data', '') }',
+            destination_project_dataset_table=f"pdc3project.analytics.{ table_name.replace('_data', '') }",
             source_uris=[bq_source_uris],
             source_format='PARQUET',
             write_disposition='WRITE_TRUNCATE',

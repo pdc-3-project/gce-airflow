@@ -13,7 +13,6 @@ import re
 
 
 def convert_to_kst(execution_date):
-    # UTC에서 한국 시간으로 변환
     execution_date_utc = execution_date.replace(tzinfo=pytz.UTC)
     execution_date_kst = execution_date_utc.astimezone(pytz.timezone('Asia/Seoul'))
     return execution_date_kst.strftime('%Y-%m-%d %H:%M:%S')

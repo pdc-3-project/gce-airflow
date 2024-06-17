@@ -33,7 +33,7 @@ def calculate_congestion(parking, parkingarea):
         congestion = '혼잡'
     else:
         congestion = '만차'
-    return degree, congestion
+    return int(degree), congestion
 
 def parse_xml_data(xml_data):
     root = ET.fromstring(xml_data)
@@ -47,7 +47,7 @@ def parse_xml_data(xml_data):
             'airportKor': '인천국제공항',
             'parkingAirportCodeName': item.find('floor').text,
             'parkingCongestion': congestion,
-            'parkingCongestionDegree': f"{degree:.2f}%",
+            'parkingCongestionDegree': degree,
             'parkingOccupiedSpace': parking,
             'parkingTotalSpace': parkingarea,
             'datetm': item.find('datetm').text[:14]

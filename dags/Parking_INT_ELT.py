@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 import pyarrow.parquet as pq
 import pandas as pd
 import pyarrow as pa
-from plugins import slack
 import pytz
 import re
 
@@ -25,19 +24,25 @@ def set_kst_execution_date(**kwargs):
     ti = kwargs['ti']
     ti.xcom_push(key='execution_date_kst', value=execution_date_kst)
 
-def extract_csv_from_gcs(execution_date_str, **kwargs):
-    ti = kwargs['ti']
+def formatted_days(ti):
+    # XCom을 사용하여 execution_date_kst를 가져옴
     execution_date_kst = ti.xcom_pull(task_ids='set_kst_execution_date', key='execution_date_kst')
     # Convert the pulled execution_date_kst string back to a datetime object
     execution_date_kst_dt = datetime.strptime(execution_date_kst, '%Y-%m-%d %H:%M:%S')
     formatted_day = execution_date_kst_dt.strftime("%d")
-    formatted_timestamp = execution_date_kst_dt.strftime("%Y%m%d%H")
+    formatted_hour = execution_date_kst_dt.strftime("%Y%m%d%H")
+    formatted_timestamp = execution_date_kst_dt.strftime("%Y%m%d%H%M")
+    return formatted_day, formatted_hour, formatted_timestamp
+
+def extract_csv_from_gcs(execution_date_str, **kwargs):
+    ti = kwargs['ti']
+    formatted_day, formatted_hour, formatted_timestamp = formatted_days(ti)
     gcs_hook = GCSHook(gcp_conn_id='google_cloud_GCS')
     bucket_name = 'pdc3project-landing-zone-bucket'
 
     # GCS 객체의 prefix와 정규 표현식 패턴을 설정
     prefix = f'source/source_parkinglot/INT_parking_data/2024/06/{formatted_day}'
-    regex_pattern = f'INT_parking_data_{formatted_timestamp}\d{{2}}.csv'
+    regex_pattern = f'INT_parking_data_{formatted_hour}\d{{2}}.csv'
 
     # 지정된 GCS prefix에서 모든 파일 리스트를 가져옴
     objects = gcs_hook.list(bucket_name, prefix=prefix)
@@ -52,6 +57,9 @@ def extract_csv_from_gcs(execution_date_str, **kwargs):
     object_name = matching_files[0]
     local_path = '/tmp/INT_parking_data.csv'
     gcs_hook.download(bucket_name, object_name, local_path)
+
+    # 다음 Task에 필요한 값을 XCom을 통해 전달
+    return {'formatted_day': formatted_day, 'formatted_timestamp': formatted_timestamp}
 
 
 def transform_csv_to_parquet(execution_date_str, **kwargs):
@@ -77,6 +85,7 @@ def upload_to_gcs(execution_date_str, **kwargs):
     execution_date_kst = ti.xcom_pull(task_ids='set_kst_execution_date', key='execution_date_kst')
     # Convert the pulled execution_date_kst string back to a datetime object
     execution_date_kst_dt = datetime.strptime(execution_date_kst, '%Y-%m-%d %H:%M:%S')
+    execution_date_kst_dt += timedelta(minutes=5)
     formatted_day = execution_date_kst_dt.strftime("%d")
     formatted_timestamp = execution_date_kst_dt.strftime("%Y%m%d%H%M")
     # 이전 태스크에서 저장된 Parquet 파일 경로를 XCom을 통해 가져옴
@@ -119,7 +128,8 @@ set_kst_task = PythonOperator(
 extract_task = PythonOperator(
     task_id='extract_csv_from_gcs',
     python_callable=extract_csv_from_gcs,
-    op_kwargs={'execution_date_str': '{{ ts }}'},  # ts는 실행 날짜와 시간을 문자열로 반환합니다.
+    op_kwargs={'execution_date_str': '{{ ts }}'},
+    provide_context=True,
     dag=dag,
 )
 
@@ -127,6 +137,7 @@ transform_task = PythonOperator(
     task_id='transform_csv_to_parquet',
     python_callable=transform_csv_to_parquet,
     op_kwargs={'execution_date_str': '{{ ts }}'},
+    provide_context=True,
     dag=dag,
 )
 
@@ -134,7 +145,42 @@ upload_task = PythonOperator(
     task_id='upload_to_gcs',
     python_callable=upload_to_gcs,
     op_kwargs={'execution_date_str': '{{ ts }}'},
+    provide_context=True,
     dag=dag,
 )
 
-set_kst_task >> extract_task >> transform_task >> upload_task
+airport = 'INT'
+bq_tasks = []
+tz = pytz.timezone('Asia/Seoul')
+now = datetime.now(tz)
+
+formatted_day = now.strftime("%d")
+rounded_minute = now.minute - (now.minute % 5)
+rounded_time = now.replace(minute=rounded_minute, second=0, microsecond=0)
+formatted_timestamp = rounded_time.strftime("%Y%m%d%H%M")
+source_object=[f'source/source_parkinglot/INT_parking_data/2024/06/{formatted_day}/INT_parking_data_{formatted_timestamp}.parquet']
+
+# GCSToBigQueryOperator에 대한 설정
+load_to_bigquery_task = GCSToBigQueryOperator(
+    task_id=f'load_{airport}_to_bigquery',
+    bucket='pdc3project-stage-layer-bucket',
+    source_objects=source_object,
+    destination_project_dataset_table=f'pdc3project.raw_data.parking_data_{airport}',
+    source_format='PARQUET',
+    write_disposition='WRITE_APPEND',
+    schema_fields=[
+        {'name': 'airportKor', 'type': 'STRING', 'mode': 'NULLABLE'},
+        {'name': 'parkingAirportCodeName', 'type': 'STRING', 'mode': 'NULLABLE'},
+        {'name': 'parkingCongestion', 'type': 'STRING', 'mode': 'NULLABLE'},
+        {'name': 'parkingCongestionDegree', 'type': 'STRING', 'mode': 'NULLABLE'},
+        {'name': 'parkingOccupiedSpace', 'type': 'INTEGER', 'mode': 'NULLABLE'},  # INT64 호환을 위해 INTEGER로 변경
+        {'name': 'parkingTotalSpace','type': 'INTEGER', 'mode': 'NULLABLE'},
+        {'name': 'datetm', 'type': 'INTEGER', 'mode': 'NULLABLE'},
+    ],
+    gcp_conn_id='google_cloud_bigquery',
+    dag=dag,
+)
+
+bq_tasks.append(load_to_bigquery_task)
+
+extract_task >> transform_task >> upload_task >> bq_tasks

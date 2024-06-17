@@ -45,7 +45,7 @@ def parse_xml_data(xml_data):
             'airportKor': item.find('airportKor').text,
             'parkingAirportCodeName': item.find('parkingAirportCodeName').text,
             'parkingCongestion': item.find('parkingCongestion').text,
-            'parkingCongestionDegree': item.find('parkingCongestionDegree').text,
+            'parkingCongestionDegree': int(item.find('parkingCongestionDegree').text[:2]),
             'parkingOccupiedSpace': item.find('parkingOccupiedSpace').text,
             'parkingTotalSpace': item.find('parkingTotalSpace').text,
             'datetm': datetm

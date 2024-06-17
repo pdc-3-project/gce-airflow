@@ -40,14 +40,16 @@ def parse_xml_data(xml_data):
         sysGetdate = item.find('sysGetdate').text
         sysGettime = item.find('sysGettime').text
         datetm = calculate_date(sysGetdate, sysGettime)
-
+        degree = int(item.find('parkingCongestionDegree').text[:2])
+        if degree >= 100:
+            defree =100
         items.append({
             'airportKor': item.find('airportKor').text,
             'parkingAirportCodeName': item.find('parkingAirportCodeName').text,
             'parkingCongestion': item.find('parkingCongestion').text,
-            'parkingCongestionDegree': int(item.find('parkingCongestionDegree').text[:2]),
-            'parkingOccupiedSpace': item.find('parkingOccupiedSpace').text,
-            'parkingTotalSpace': item.find('parkingTotalSpace').text,
+            'parkingCongestionDegree': int(degree),
+            'parkingOccupiedSpace': int(item.find('parkingOccupiedSpace').text),
+            'parkingTotalSpace': int(item.find('parkingTotalSpace').text),
             'datetm': datetm
         })
     return items

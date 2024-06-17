@@ -18,14 +18,12 @@ def convert_to_kst(execution_date):
     execution_date_kst = execution_date_utc.astimezone(pytz.timezone('Asia/Seoul'))
     return execution_date_kst.strftime('%Y-%m-%d %H:%M:%S')
 
-
 def set_kst_execution_date(**kwargs):
     # Airflow의 execution_date를 가져와서 한국 시간대로 변환 후 XCom에 저장
     execution_date = kwargs['execution_date']
     execution_date_kst = convert_to_kst(execution_date)
     ti = kwargs['ti']
     ti.xcom_push(key='execution_date_kst', value=execution_date_kst)
-
 
 def formatted_days(ti):
     # XCom을 사용하여 execution_date_kst를 가져옴
@@ -36,7 +34,6 @@ def formatted_days(ti):
     formatted_hour = execution_date_kst_dt.strftime("%Y%m%d%H")
     formatted_timestamp = execution_date_kst_dt.strftime("%Y%m%d%H%M")
     return formatted_day, formatted_hour, formatted_timestamp
-
 
 def extract_csv_from_gcs(execution_date_str, **kwargs):
     ti = kwargs['ti']
@@ -112,7 +109,7 @@ default_args = {
 }
 
 dag = DAG(
-    'GMP_csv_to_parquet',
+    'BQ_GMP_csv_to_parquet',
     default_args=default_args,
     description='CSV 데이터를 Parquet으로 변환하여 GCS에 저장하는 DAG',
     schedule_interval='*/5 * * * *',
@@ -160,8 +157,7 @@ formatted_day = now.strftime("%d")
 rounded_minute = now.minute - (now.minute % 5)
 rounded_time = now.replace(minute=rounded_minute, second=0, microsecond=0)
 formatted_timestamp = rounded_time.strftime("%Y%m%d%H%M")
-source_object = [
-    f'source/source_parkinglot/GMP_parking_data/2024/06/{formatted_day}/GMP_parking_data_{formatted_timestamp}.parquet']
+source_object=[f'source/source_parkinglot/GMP_parking_data/2024/06/{formatted_day}/GMP_parking_data_{formatted_timestamp}.parquet']
 
 # GCSToBigQueryOperator에 대한 설정
 load_to_bigquery_task = GCSToBigQueryOperator(
@@ -175,9 +171,9 @@ load_to_bigquery_task = GCSToBigQueryOperator(
         {'name': 'airportKor', 'type': 'STRING', 'mode': 'NULLABLE'},
         {'name': 'parkingAirportCodeName', 'type': 'STRING', 'mode': 'NULLABLE'},
         {'name': 'parkingCongestion', 'type': 'STRING', 'mode': 'NULLABLE'},
-        {'name': 'parkingCongestionDegree', 'type': 'INTEGER', 'mode': 'NULLABLE'},
-        {'name': 'parkingOccupiedSpace', 'type': 'INTEGER', 'mode': 'NULLABLE'},  # INT64 호환을 위해 INTEGER로 변경
-        {'name': 'parkingTotalSpace', 'type': 'INTEGER', 'mode': 'NULLABLE'},
+        {'name': 'parkingCongestionDegree', 'type':'INTEGER', 'mode': 'NULLABLE'},
+        {'name': 'parkingOccupiedSpace', 'type':'INTEGER', 'mode': 'NULLABLE'},  # INT64 호환을 위해 INTEGER로 변경
+        {'name': 'parkingTotalSpace','type': 'INTEGER', 'mode': 'NULLABLE'},
         {'name': 'datetm', 'type': 'INTEGER', 'mode': 'NULLABLE'},
     ],
     gcp_conn_id='google_cloud_bigquery',

@@ -40,14 +40,16 @@ def parse_xml_data(xml_data):
         sysGetdate = item.find('sysGetdate').text
         sysGettime = item.find('sysGettime').text
         datetm = calculate_date(sysGetdate, sysGettime)
-
+        degree = int(item.find('parkingCongestionDegree').text[:2])
+        if degree >= 100:
+            degree =int(100)
         items.append({
             'airportKor': item.find('airportKor').text,
             'parkingAirportCodeName': item.find('parkingAirportCodeName').text,
             'parkingCongestion': item.find('parkingCongestion').text,
-            'parkingCongestionDegree': int(item.find('parkingCongestionDegree').text[:2]),
-            'parkingOccupiedSpace': item.find('parkingOccupiedSpace').text,
-            'parkingTotalSpace': item.find('parkingTotalSpace').text,
+            'parkingCongestionDegree': int(degree),
+            'parkingOccupiedSpace': int(item.find('parkingOccupiedSpace').text),
+            'parkingTotalSpace': int(item.find('parkingTotalSpace').text),
             'datetm': datetm
         })
     return items
@@ -58,7 +60,7 @@ def update_parking_data():
     data_gmp = fetch_xml_data('CJU')
     parsed_data_gmp = parse_xml_data(data_gmp)
     df = pd.DataFrame(parsed_data_gmp)
-    df.to_csv('/tmp/GMP_parking_data.csv', index=False, encoding='utf-8-sig')
+    df.to_csv('/tmp/CJU_parking_data.csv', index=False, encoding='utf-8-sig')
     print("Domestic data fetched and saved to '/tmp/CJU_parking_data.csv'")
 
 

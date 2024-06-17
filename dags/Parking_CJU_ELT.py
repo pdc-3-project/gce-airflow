@@ -109,7 +109,7 @@ default_args = {
 }
 
 dag = DAG(
-    'GMP_csv_to_parquet',
+    'BQ_CJU_csv_to_parquet',
     default_args=default_args,
     description='CSV 데이터를 Parquet으로 변환하여 GCS에 저장하는 DAG',
     schedule_interval='*/5 * * * *',
@@ -171,8 +171,8 @@ load_to_bigquery_task = GCSToBigQueryOperator(
         {'name': 'airportKor', 'type': 'STRING', 'mode': 'NULLABLE'},
         {'name': 'parkingAirportCodeName', 'type': 'STRING', 'mode': 'NULLABLE'},
         {'name': 'parkingCongestion', 'type': 'STRING', 'mode': 'NULLABLE'},
-        {'name': 'parkingCongestionDegree', 'type': 'INTEGER', 'mode': 'NULLABLE'},
-        {'name': 'parkingOccupiedSpace', 'type': 'INTEGER', 'mode': 'NULLABLE'},  # INT64 호환을 위해 INTEGER로 변경
+        {'name': 'parkingCongestionDegree', 'type':'INTEGER', 'mode': 'NULLABLE'},
+        {'name': 'parkingOccupiedSpace', 'type':'INTEGER', 'mode': 'NULLABLE'},  # INT64 호환을 위해 INTEGER로 변경
         {'name': 'parkingTotalSpace','type': 'INTEGER', 'mode': 'NULLABLE'},
         {'name': 'datetm', 'type': 'INTEGER', 'mode': 'NULLABLE'},
     ],

@@ -22,14 +22,8 @@ with DAG(
     query = """
         DROP TABLE IF EXISTS analytics.up_30m_with_weather;
         CREATE TABLE analytics.up_30m_with_weather AS 
-        SELECT DISTINCT(SUBSTRING(wi.TM, 5, 8)) AS STD, fda.BOARDING_KOR AS DEPARTURE_AP, (fda.ETD-fda.STD) AS DELAY_TIME, wi.WS10/10 AS WS10, wi.HM, wi.PA/10 AS PA, wi.TA/10 AS TA, wi.RN/10 AS RN 
-        FROM (
-        SELECT *, '서울/김포' AS target_airport FROM `pdc3project.raw_data.flight_data_GIMPO`
-            UNION ALL
-        SELECT *, '인천' AS target_airport FROM `pdc3project.raw_data.flight_data_INCHEON`
-            UNION ALL
-        SELECT *, '제주' AS target_airport FROM `pdc3project.raw_data.flight_data_JEJU`
-        ) AS fda
+        SELECT DISTINCT(DATETIME(SUBSTRING(wi.TM, 1, 4) || '-' || SUBSTRING(wi.TM, 5, 2) || '-' || SUBSTRING(wi.TM, 7, 2) || ' ' ||  SUBSTRING(wi.TM, 9, 2) || ':' || SUBSTRING(wi.TM, 11, 2) || ':00')) AS STD, fda.BOARDING_KOR AS DEPARTURE_AP, (fda.ETD-fda.STD) AS DELAY_TIME, wi.WS10/10 AS WS10, wi.HM, wi.PA/10 AS PA, wi.TA/10 AS TA, wi.RN/10 AS RN 
+        FROM `pdc3project.raw_data.flight_data` AS fda
         JOIN (
             SELECT w.TM, w.WS10, w.HM, w.PA, w.TA, w.RN, wac.AIRPORT_NAME, wac.AIRPORT_CODE
             FROM `pdc3project.raw_data.weather_infor` AS w

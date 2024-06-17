@@ -7,7 +7,6 @@ from airflow.providers.google.cloud.transfers.local_to_gcs import LocalFilesyste
 from plugins import slack  
 from airflow.models import Variable
 
-# Airflow Variables
 service_key = Variable.get('airport_api_key')
 
 def fetch_data_from_api(url, params):
@@ -64,17 +63,16 @@ def transform_flight_data(**kwargs):
 
 default_args = {
     'owner': 'airflow',
-    'depends_on_past': False,
-    'start_date': datetime(2024, 6, 14),
+    'start_date': datetime(2024, 6, 1),
     'retries': 1,
-    'retry_delay': timedelta(minutes=5),
+    'retry_delay': timedelta(minutes=1),
     'on_failure_callback': slack.on_failure_callback  # Slack 알림 설정
 }
 
 dag = DAG(
-    dag_id='flight_data_fetcher',
+    dag_id='FS_api_to_gcs',
     default_args=default_args,
-    catchup=False,
+    catchup=True,
     schedule_interval='0 0 * * *',  # 매일 자정 UTC에 실행
 )
 
